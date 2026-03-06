@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ParliementCard from "./ParliementCard";
 import axios from "axios";
-import Trial from "./trial";
+import Trial from "./Trial";
 import mainBanner from "./main.png";
 
 const INITIAL_DATA = [

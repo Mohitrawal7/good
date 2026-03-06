@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import ParliementCard from "./ParliementCard";
 import DetailDashboard from "./DetailDashboard";
+import Trial from "./trial";
 
 const INITIAL_DATA = [
   { id: 1, name: "रास्वपा", seats: 123, color: "#22d3ee", bg: "bg-cyan-400", lightBg: "bg-cyan-100/40" },
@@ -50,6 +51,8 @@ const totalSeats = parties.reduce((sum, party) => sum + party.seats, 0);
         removeSeat={removeSeat}
       />
       </div>
+
+      <Trial/>
     </>
   );
 };

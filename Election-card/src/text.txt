@@ -1,0 +1,8 @@
+
+- Added package.json for project dependencies and scripts
+- Configured PostCSS with Tailwind CSS
+- Created initial SVG assets for branding
+- Implemented main application structure with App, DetailDashboard, and ParliementCard components
+- Styled application using Tailwind CSS and custom CSS
+- Set up Vite configuration for development and build processes
+- Added functionality for managing parliamentary seats and party details

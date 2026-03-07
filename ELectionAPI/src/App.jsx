@@ -102,7 +102,7 @@ const App = () => {
         id: party.party_id,
         name: party.party_name,
         color: party.party_color,
-        seats: party.leading_count + party.winner_count, // 🔑 seat data
+        seats: party.leading_count + party.winner_count, 
       }));
 
       setParties(formatted);

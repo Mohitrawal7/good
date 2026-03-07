@@ -94,6 +94,10 @@ useEffect(() => {
 </div>
 
 )} 
+  onRow={(record) => ({
+    style: { backgroundColor: record.color }, // assuming `color` is a field in your data
+  })}
+
 
 pagination={false}  bordered>
     
@@ -121,6 +125,7 @@ pagination={false}  bordered>
       <Column title="Lead" dataIndex="leading_count" key="lastName" />
       <Column title="WIN" dataIndex="winner_count" key="age" />
     <Column title="Total Seats" dataIndex="seats" key="address" />
+    <Column title="Samanupatik Seats" dataIndex="samunapatik" key="address" />
     {/* <Column
       title="Tags"
       dataIndex="tags"

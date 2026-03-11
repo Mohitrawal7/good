@@ -1,0 +1,99 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'DM Mono', 'Fira Mono', monospace;
+  background: #0d0f14;
+  color: #c8cdd8;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tab buttons */
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 10px 20px;
+  color: #556;
+  letter-spacing: 0.05em;
+  transition: color 0.2s, border-color 0.2s;
+}
+.tab-btn.active {
+  color: #f0a500;
+  border-bottom-color: #f0a500;
+}
+.tab-btn:hover:not(.active) {
+  color: #c8cdd8;
+}
+
+/* Service hexagons */
+.service-hex {
+  cursor: pointer;
+}
+.service-hex:hover polygon {
+  filter: brightness(1.3);
+}
+
+/* Pattern cards */
+.pattern-card {
+  cursor: pointer;
+  border: 1px solid #1e2230;
+  background: #12151d;
+  border-radius: 8px;
+  padding: 16px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.pattern-card:hover {
+  border-color: #333;
+}
+.pattern-card.active {
+  border-color: var(--card-color);
+  background: #161920;
+}
+
+/* Pills */
+.pill {
+  display: inline-block;
+  background: #1a1e28;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  margin: 3px 2px;
+  color: #8899aa;
+}
+.pill.pro {
+  background: #0d1f16;
+  color: #5ce0a0;
+}
+.pill.con {
+  background: #1f0d0d;
+  color: #e05c5c;
+}
+
+/* Animated dashed connection lines */
+.conn-async {
+  stroke-dasharray: 6 4;
+  animation: dash 1s linear infinite;
+}
+@keyframes dash {
+  to { stroke-dashoffset: -20; }
+}
+
+/* Fade-in panel */
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

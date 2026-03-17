@@ -35,7 +35,7 @@ export default function CommunicationPatterns() {
                   fontWeight: 500,
                 }}
               >
-                {p.name}
+                {p.name }
               </span>
             </div>
           </div>

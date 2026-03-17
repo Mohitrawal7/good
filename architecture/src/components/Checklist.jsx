@@ -16,17 +16,51 @@ export default function Checklist() {
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: 720 }}>
-      <h2
-        style={{
-          fontFamily: "'Syne', sans-serif",
-          fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 6,
-        }}
-      >
-        Your Getting Started Checklist
-      </h2>
-      <p style={{ fontSize: 12, color: '#556', marginBottom: 20 }}>
-        A pragmatic path from monolith → microservices for SaaS beginners
-      </p>
+    
+   <div
+  style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  }}
+>
+  {/* LEFT SIDE */}
+  <div>
+    <h2
+      style={{
+        fontFamily: "'Syne', sans-serif",
+        fontSize: 20,
+        fontWeight: 800,
+        color: '#fff',
+        marginBottom: 6,
+      }}
+    >
+      Your Getting Started Checklist
+    </h2>
+
+    <p style={{ fontSize: 12, color: '#556' }}>
+      A pragmatic path from monolith → microservices for SaaS beginners
+    </p>
+  </div>
+
+  {/* RIGHT SIDE BUTTON */}
+  <button
+    style={{
+      background: 'transparent',
+      border: '1px solid #1a1e28',
+      color: '#5ce0a0',
+      borderRadius: 16,
+      fontSize: 12,
+      padding: '6px 10px',
+      cursor: 'pointer',
+      height: 'fit-content',
+    }}
+  >
+    add phase
+  </button>
+</div>
+     
 
       {/* Progress bar */}
       <div style={{ marginBottom: 28 }}>
@@ -64,6 +98,27 @@ export default function Checklist() {
             >
               {phase}
             </span>
+            <button 
+              style={{
+                background: 'transparent',
+                border: '1px solid #1a1e28',
+                color: color,
+                borderRadius: 16,
+                right: 0,
+                fontSize: 12,
+                padding: '4px 8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onClick={() => {
+                // Add a new item to this phase
+                const newItem = `New task ${items.length + 1}`
+                const phaseIndex = checklistPhases.findIndex(p => p.phase === phase)
+                checklistPhases[phaseIndex].items.push(newItem)
+              }}
+            >
+              add item
+            </button>
           </div>
 
           {/* Items */}

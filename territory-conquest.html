@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraConquer — Claim Your Kingdom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #0a0c12;
+    --panel: #0f1320;
+    --border: #1e2840;
+    --gold: #c9a227;
+    --gold-light: #f0c45a;
+    --red: #d63031;
+    --blue: #0984e3;
+    --green: #00b894;
+    --purple: #6c5ce7;
+    --text: #e8e0d0;
+    --muted: #6b7a9a;
+    --player-color: rgba(201,162,39,0.55);
+    --player-border: #c9a227;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 54px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+
+  .logo {
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(201,162,39,0.5);
+  }
+  .logo span { color: var(--text); }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .stat-pill .icon { font-size: 0.9rem; }
+  .stat-pill .val { color: var(--gold); font-size: 1rem; font-weight: 700; }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 280px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 900;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* Player card */
+  .player-card {
+    background: linear-gradient(135deg, rgba(201,162,39,0.1) 0%, rgba(201,162,39,0.03) 100%);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .player-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .player-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .player-name { font-weight: 700; font-size: 1rem; }
+  .player-rank { font-size: 0.75rem; color: var(--gold); letter-spacing: 1px; }
+
+  .progress-bar-wrap {
+    margin-bottom: 8px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .progress-track {
+    height: 6px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .fill-gold { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+  .fill-green { background: linear-gradient(90deg, var(--green), #55efc4); }
+
+  /* Controls */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold), #a87c10);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(201,162,39,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,162,39,0.5); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-danger {
+    background: rgba(214,48,49,0.15);
+    color: var(--red);
+    border: 1px solid rgba(214,48,49,0.4);
+  }
+  .btn-danger:hover { background: rgba(214,48,49,0.25); }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+  /* Kingdom panel */
+  .kingdom-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(108,92,231,0.1);
+    border: 1px solid rgba(108,92,231,0.3);
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .kingdom-icon { font-size: 1.5rem; }
+  .kingdom-name { font-weight: 700; font-size: 0.95rem; }
+  .kingdom-size { font-size: 0.75rem; color: var(--muted); }
+
+  /* Leaderboard */
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .lb-rank { font-size: 0.75rem; color: var(--muted); width: 20px; }
+  .lb-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .lb-name { flex: 1; font-size: 0.9rem; font-weight: 600; }
+  .lb-area { font-size: 0.8rem; color: var(--gold); }
+
+  /* Territories panel */
+  .territory-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .territory-item:hover { background: rgba(255,255,255,0.07); }
+  .territory-item .t-name { font-size: 0.85rem; font-weight: 600; }
+  .territory-item .t-size { font-size: 0.75rem; color: var(--muted); }
+  .assign-btn {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+  }
+  .assign-btn:hover { background: rgba(201,162,39,0.15); }
+
+  /* ── Map container ── */
+  .map-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Map overlays */
+  .map-overlay {
+    position: absolute;
+    z-index: 600;
+    pointer-events: none;
+  }
+
+  .trail-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 500;
+    pointer-events: none;
+  }
+
+  /* Status bar */
+  .status-bar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,12,18,0.92);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 700;
+    backdrop-filter: blur(10px);
+    pointer-events: all;
+  }
+
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot-red { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+  .dot-yellow { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+  }
+
+  .status-text { font-size: 0.9rem; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* Mode badges */
+  .mode-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .mode-explore { background: rgba(0,184,148,0.2); color: var(--green); border: 1px solid rgba(0,184,148,0.4); }
+  .mode-trace { background: rgba(201,162,39,0.2); color: var(--gold); border: 1px solid rgba(201,162,39,0.4); }
+  .mode-capture { background: rgba(214,48,49,0.2); color: var(--red); border: 1px solid rgba(214,48,49,0.4); }
+
+  /* Notification toast */
+  .toast-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-width: 240px;
+    max-width: 300px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    animation: slideIn 0.3s ease, fadeOut 0.5s ease 3.5s forwards;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+
+  .toast.toast-success { border-left: 3px solid var(--green); }
+  .toast.toast-gold { border-left: 3px solid var(--gold); }
+  .toast.toast-warning { border-left: 3px solid var(--red); }
+
+  .toast-icon { font-size: 1.2rem; }
+  .toast-msg { font-size: 0.85rem; line-height: 1.4; }
+  .toast-title { font-weight: 700; margin-bottom: 2px; }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateX(20px); }
+  }
+
+  /* Capture celebration */
+  .capture-flash {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, rgba(201,162,39,0.3) 0%, transparent 70%);
+    z-index: 650;
+    pointer-events: none;
+    animation: flashIn 0.8s ease forwards;
+  }
+  @keyframes flashIn {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* Geo request overlay */
+  .geo-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,12,18,0.92);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .geo-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    max-width: 400px;
+    text-align: center;
+  }
+
+  .geo-card .big-icon { font-size: 3rem; margin-bottom: 16px; display: block; }
+  .geo-card h2 { font-family: 'Cinzel', serif; font-size: 1.4rem; margin-bottom: 10px; color: var(--gold); }
+  .geo-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px; }
+
+  /* Modal */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    width: 360px;
+    max-width: 90vw;
+  }
+  .modal h3 { font-family: 'Cinzel', serif; color: var(--gold); margin-bottom: 16px; font-size: 1.1rem; }
+  .modal input, .modal select {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+  }
+  .modal-btns { display: flex; gap: 8px; margin-top: 4px; }
+
+  .speed-indicator {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* Color swatches for players */
+  .color-swatch {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+
+  /* Leaflet overrides */
+  .leaflet-container { background: #0a0c12; }
+  .leaflet-tile { filter: brightness(0.6) saturate(0.5) hue-rotate(200deg); }
+  .leaflet-control-zoom a {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-control-attribution { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">Terra<span>Conquer</span></div>
+  <div class="header-stats">
+    <div class="stat-pill"><span class="icon">🗺️</span> Territory <span class="val" id="hdr-area">0 m²</span></div>
+    <div class="stat-pill"><span class="icon">👑</span> Kingdom <span class="val" id="hdr-kingdom">—</span></div>
+    <div class="stat-pill"><span class="icon">⚡</span> Speed <span class="val" id="hdr-speed">0 km/h</span></div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- Player -->
+    <div class="sidebar-section">
+      <div class="section-title">Your Profile</div>
+      <div class="player-card">
+        <div class="player-name-row">
+          <div class="player-avatar" id="avatarInitial">P</div>
+          <div>
+            <div class="player-name" id="displayName">Player</div>
+            <div class="player-rank" id="playerRank">Wanderer</div>
+          </div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-label"><span>Territory</span><span id="terrPct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill fill-gold" id="terrBar" style="width:0%"></div></div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-label"><span>Kingdom Progress</span><span id="kingdomPct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill fill-green" id="kingdomBar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="startTraceBtn" onclick="startTrace()">⚔️ Start Claiming</button>
+      <button class="btn btn-danger" id="stopTraceBtn" onclick="stopTrace()" style="display:none">🛑 Cancel Trace</button>
+      <button class="btn btn-secondary" onclick="centerMap()">📍 Center on Me</button>
+      <div class="speed-indicator" id="speedInfo">Walk or drive to claim territory</div>
+    </div>
+
+    <!-- Kingdom -->
+    <div class="sidebar-section" id="kingdomSection" style="display:none">
+      <div class="section-title">Your Kingdom</div>
+      <div class="kingdom-badge">
+        <div class="kingdom-icon">👑</div>
+        <div>
+          <div class="kingdom-name" id="kingdomName">Kingdom</div>
+          <div class="kingdom-size" id="kingdomSize">0 territories</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="openAssignModal()">🤝 Assign Territory</button>
+    </div>
+
+    <!-- Territories -->
+    <div class="sidebar-section">
+      <div class="section-title">My Territories</div>
+      <div id="territoriesList"><div style="color:var(--muted);font-size:0.8rem;">No territories yet. Encircle an area to claim it!</div></div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="sidebar-section" style="flex:1">
+      <div class="section-title">Leaderboard</div>
+      <div id="leaderboard"></div>
+    </div>
+
+  </aside>
+
+  <!-- Map -->
+  <div class="map-wrap">
+    <div id="map"></div>
+    <canvas class="trail-canvas" id="trailCanvas"></canvas>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-dot dot-red" id="statusDot"></div>
+      <div class="status-text" id="statusText">Locating you...</div>
+      <div class="mode-badge mode-explore" id="modeBadge">EXPLORE</div>
+    </div>
+
+    <!-- Geo overlay -->
+    <div class="geo-overlay" id="geoOverlay">
+      <div class="geo-card">
+        <span class="big-icon">🌍</span>
+        <h2>Enable Location</h2>
+        <p>TerraConquer uses your real GPS location to let you claim territory as you move through the world. Your position stays private — this game runs entirely in your browser.</p>
+        <button class="btn btn-primary" onclick="requestLocation()">📍 Allow Location Access</button>
+        <button class="btn btn-secondary" style="margin-top:8px" onclick="useSimulation()">🤖 Use Simulation Mode</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal-backdrop" id="assignModal">
+  <div class="modal">
+    <h3>⚔️ Assign Territory</h3>
+    <label style="font-size:0.85rem;color:var(--muted);display:block;margin-bottom:6px">Select Territory</label>
+    <select id="assignTerritory"></select>
+    <label style="font-size:0.85rem;color:var(--muted);display:block;margin-bottom:6px">Assign to Player</label>
+    <input type="text" id="assignPlayer" placeholder="Enter player name..." />
+    <div class="modal-btns">
+      <button class="btn btn-primary" style="flex:1" onclick="confirmAssign()">Assign</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════
+const STATE = {
+  playerName: 'Conqueror',
+  playerColor: '#c9a227',
+  position: null,
+  tracing: false,
+  trailPoints: [],
+  territories: [],     // [{id, latlngs, area, name, assignedTo, layer}]
+  totalArea: 0,
+  isKing: false,
+  kingdomName: null,
+  speed: 0,
+  lastPos: null,
+  lastTime: null,
+  simMode: false,
+  simInterval: null,
+  simAngle: 0,
+  simRadius: 0.0005,
+  simCenter: null,
+  simPhase: 0,
+};
+
+const KING_THRESHOLD = 50000;    // 50,000 m² → kingdom
+const RANK_THRESHOLDS = [
+  { area: 0,      rank: 'Wanderer' },
+  { area: 1000,   rank: 'Scout' },
+  { area: 5000,   rank: 'Explorer' },
+  { area: 15000,  rank: 'Conqueror' },
+  { area: 30000,  rank: 'Warlord' },
+  { area: KING_THRESHOLD, rank: 'King' },
+];
+
+const PLAYER_COLORS = ['#c9a227','#0984e3','#00b894','#d63031','#6c5ce7','#fd79a8','#fdcb6e','#e17055'];
+let colorIdx = 0;
+
+const fakeLeaderboard = [
+  { name: 'You', area: 0, color: '#c9a227' },
+  { name: 'Ragnar', area: 32000, color: '#d63031' },
+  { name: 'Aria', area: 28500, color: '#6c5ce7' },
+  { name: 'Thunder', area: 19000, color: '#0984e3' },
+  { name: 'Nomad', area: 11000, color: '#00b894' },
+];
+
+// ═══════════════════════════════════════
+//  MAP INIT
+// ═══════════════════════════════════════
+const map = L.map('map', {
+  center: [27.7, 83.45],
+  zoom: 15,
+  zoomControl: true,
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap',
+  maxZoom: 19,
+}).addTo(map);
+
+// Player marker
+const playerIcon = L.divIcon({
+  html: `<div style="
+    width:20px;height:20px;border-radius:50%;
+    background:var(--gold,#c9a227);
+    border:3px solid #fff;
+    box-shadow:0 0 12px rgba(201,162,39,0.9);
+    position:relative;
+  "><div style="
+    position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+    width:0;height:0;
+    border-left:5px solid transparent;
+    border-right:5px solid transparent;
+    border-bottom:8px solid #fff;
+  "></div></div>`,
+  iconSize: [20, 28],
+  iconAnchor: [10, 10],
+  className: '',
+});
+let playerMarker = null;
+
+// Trail polyline
+let trailLine = null;
+const trailLayer = L.layerGroup().addTo(map);
+const territoryLayer = L.layerGroup().addTo(map);
+
+// ═══════════════════════════════════════
+//  CANVAS TRAIL
+// ═══════════════════════════════════════
+const canvas = document.getElementById('trailCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = document.querySelector('.map-wrap').getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ═══════════════════════════════════════
+//  LOCATION
+// ═══════════════════════════════════════
+function requestLocation() {
+  if (!navigator.geolocation) {
+    showToast('warning','No GPS','Your browser does not support geolocation.');
+    useSimulation();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('geoOverlay').style.display = 'none';
+      updatePosition(pos.coords.latitude, pos.coords.longitude);
+      map.setView([pos.coords.latitude, pos.coords.longitude], 16);
+      showToast('success','GPS Active','Your location has been found. Start exploring!');
+      // Watch
+      navigator.geolocation.watchPosition(
+        p => updatePosition(p.coords.latitude, p.coords.longitude),
+        null,
+        { enableHighAccuracy: true, maximumAge: 2000 }
+      );
+      setStatusDot('green', 'GPS Active');
+    },
+    () => {
+      showToast('warning','Permission Denied','Using simulation mode instead.');
+      useSimulation();
+    },
+    { enableHighAccuracy: true }
+  );
+}
+
+function useSimulation() {
+  document.getElementById('geoOverlay').style.display = 'none';
+  STATE.simMode = true;
+  // Start near Nepalgunj as default
+  const base = [27.705, 83.458];
+  STATE.simCenter = base;
+  map.setView(base, 16);
+  showToast('success','Simulation Mode','Move your mouse over the map to simulate walking!');
+  setStatusDot('yellow', 'Simulation Mode');
+  document.getElementById('speedInfo').textContent = 'Hover/click map to move • Simulation active';
+
+  // Simulate with mouse
+  map.on('mousemove', e => {
+    if (!STATE.simMode) return;
+    updatePosition(e.latlng.lat, e.latlng.lng);
+  });
+
+  map.on('click', e => {
+    if (!STATE.simMode) return;
+    updatePosition(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Also auto-simulate slow walk
+  STATE.simInterval = setInterval(autoSimWalk, 200);
+}
+
+function autoSimWalk() {
+  if (!STATE.simCenter) return;
+  // Only auto-walk if tracing and user hasn't moved mouse recently
+  const t = Date.now();
+  if (STATE.tracing && (t - (STATE.lastMouseMove || 0)) > 2000) {
+    STATE.simAngle += 0.08;
+    const lat = STATE.simCenter[0] + Math.sin(STATE.simAngle) * STATE.simRadius * (1 + STATE.simPhase * 0.3);
+    const lng = STATE.simCenter[1] + Math.cos(STATE.simAngle) * STATE.simRadius * (1 + STATE.simPhase * 0.3);
+    updatePosition(lat, lng);
+    if (STATE.simAngle > Math.PI * 2 * (STATE.simPhase + 1)) {
+      STATE.simPhase++;
+      STATE.simRadius *= 0.7;
+      if (STATE.simRadius < 0.0001) STATE.simRadius = 0.0005;
+    }
+  }
+}
+
+map.on('mousemove', () => { STATE.lastMouseMove = Date.now(); });
+
+function updatePosition(lat, lng) {
+  STATE.position = { lat, lng };
+  computeSpeed(lat, lng);
+
+  if (!playerMarker) {
+    playerMarker = L.marker([lat, lng], { icon: playerIcon }).addTo(map);
+  } else {
+    playerMarker.setLatLng([lat, lng]);
+  }
+
+  if (STATE.tracing) {
+    STATE.trailPoints.push([lat, lng]);
+    updateTrailLine();
+    checkSelfIntersection();
+  }
+
+  updateStatusBar();
+  updateHdrSpeed();
+}
+
+function computeSpeed(lat, lng) {
+  const now = Date.now();
+  if (STATE.lastPos && STATE.lastTime) {
+    const dt = (now - STATE.lastTime) / 1000;
+    const dist = haversine(STATE.lastPos.lat, STATE.lastPos.lng, lat, lng);
+    STATE.speed = (dist / dt) * 3.6; // km/h
+  }
+  STATE.lastPos = { lat, lng };
+  STATE.lastTime = Date.now();
+}
+
+// ═══════════════════════════════════════
+//  TRACING
+// ═══════════════════════════════════════
+function startTrace() {
+  if (!STATE.position) {
+    showToast('warning','No Position','Wait for GPS or hover map in simulation mode.');
+    return;
+  }
+  STATE.tracing = true;
+  STATE.trailPoints = [[ STATE.position.lat, STATE.position.lng ]];
+  document.getElementById('startTraceBtn').style.display = 'none';
+  document.getElementById('stopTraceBtn').style.display = 'block';
+  setStatusDot('yellow', 'Tracing...');
+  document.getElementById('modeBadge').textContent = 'TRACING';
+  document.getElementById('modeBadge').className = 'mode-badge mode-trace';
+  showToast('gold','Trace Started','Move around to encircle an area. Return to your start point to capture!');
+
+  if (trailLine) { trailLayer.removeLayer(trailLine); trailLine = null; }
+}
+
+function stopTrace() {
+  STATE.tracing = false;
+  STATE.trailPoints = [];
+  document.getElementById('startTraceBtn').style.display = 'block';
+  document.getElementById('stopTraceBtn').style.display = 'none';
+  if (trailLine) { trailLayer.removeLayer(trailLine); trailLine = null; }
+  setStatusDot('green', 'GPS Active');
+  document.getElementById('modeBadge').textContent = 'EXPLORE';
+  document.getElementById('modeBadge').className = 'mode-badge mode-explore';
+}
+
+function updateTrailLine() {
+  if (trailLine) trailLayer.removeLayer(trailLine);
+  trailLine = L.polyline(STATE.trailPoints, {
+    color: '#c9a227',
+    weight: 3,
+    opacity: 0.9,
+    dashArray: '8,4',
+  }).addTo(trailLayer);
+}
+
+function checkSelfIntersection() {
+  const pts = STATE.trailPoints;
+  if (pts.length < 8) return;
+
+  // Check if current point is close to start point
+  const start = pts[0];
+  const curr = pts[pts.length - 1];
+  const distToStart = haversine(curr[0], curr[1], start[0], start[1]);
+
+  if (distToStart < 15 && pts.length >= 8) { // within 15m of start
+    captureTerritory();
+  }
+}
+
+// ═══════════════════════════════════════
+//  TERRITORY CAPTURE
+// ═══════════════════════════════════════
+let terrCounter = 0;
+
+function captureTerritory() {
+  const pts = STATE.trailPoints;
+  const area = polygonArea(pts);
+  if (area < 100) {
+    showToast('warning','Too Small','Encircle a larger area to claim it!');
+    stopTrace();
+    return;
+  }
+
+  terrCounter++;
+  const id = `T${terrCounter}`;
+  const name = generateTerritoryName();
+
+  // Check overlap with existing territories
+  // (simplified: just add for now)
+
+  const polygon = L.polygon(pts, {
+    fillColor: STATE.playerColor,
+    fillOpacity: 0.35,
+    color: STATE.playerColor,
+    weight: 2,
+    opacity: 0.8,
+  }).addTo(territoryLayer);
+
+  polygon.bindTooltip(`<b>${name}</b><br>${formatArea(area)}`, { permanent: false, direction: 'center' });
+
+  const territory = { id, latlngs: pts, area, name, assignedTo: null, layer: polygon };
+  STATE.territories.push(territory);
+  STATE.totalArea += area;
+
+  // Flash effect
+  const flash = document.createElement('div');
+  flash.className = 'capture-flash';
+  document.querySelector('.map-wrap').appendChild(flash);
+  setTimeout(() => flash.remove(), 800);
+
+  stopTrace();
+  document.getElementById('modeBadge').textContent = 'CAPTURE!';
+  document.getElementById('modeBadge').className = 'mode-badge mode-capture';
+  setTimeout(() => {
+    document.getElementById('modeBadge').textContent = 'EXPLORE';
+    document.getElementById('modeBadge').className = 'mode-badge mode-explore';
+  }, 2000);
+
+  showToast('success','Territory Claimed!',`${name} captured! +${formatArea(area)}`);
+  updateUI();
+  checkKingdom();
+}
+
+function checkKingdom() {
+  const wasKing = STATE.isKing;
+  STATE.isKing = STATE.totalArea >= KING_THRESHOLD;
+  if (STATE.isKing && !wasKing) {
+    STATE.kingdomName = `Kingdom of ${STATE.playerName}`;
+    document.getElementById('kingdomSection').style.display = 'block';
+    showToast('gold','👑 Kingdom Established!',`You now rule the ${STATE.kingdomName}! You can assign territories to others.`);
+    updateKingdomUI();
+  }
+}
+
+// ═══════════════════════════════════════
+//  UI UPDATES
+// ═══════════════════════════════════════
+function updateUI() {
+  // Header
+  document.getElementById('hdr-area').textContent = formatArea(STATE.totalArea);
+  document.getElementById('hdr-kingdom').textContent = STATE.isKing ? (STATE.kingdomName || 'Yours') : '—';
+
+  // Progress bars
+  const terrPct = Math.min(STATE.totalArea / KING_THRESHOLD * 100, 100);
+  document.getElementById('terrBar').style.width = terrPct + '%';
+  document.getElementById('terrPct').textContent = Math.round(terrPct) + '%';
+  document.getElementById('kingdomBar').style.width = terrPct + '%';
+  document.getElementById('kingdomPct').textContent = Math.round(terrPct) + '%';
+
+  // Rank
+  const rank = STATE.totalArea >= KING_THRESHOLD ? 'King' :
+    [...RANK_THRESHOLDS].reverse().find(r => STATE.totalArea >= r.area)?.rank || 'Wanderer';
+  document.getElementById('playerRank').textContent = rank;
+
+  // Territories list
+  const list = document.getElementById('territoriesList');
+  if (STATE.territories.length === 0) {
+    list.innerHTML = `<div style="color:var(--muted);font-size:0.8rem;">No territories yet. Encircle an area to claim it!</div>`;
+  } else {
+    list.innerHTML = STATE.territories.map(t => `
+      <div class="territory-item" onclick="flyToTerritory('${t.id}')">
+        <div>
+          <div class="t-name">${t.name}</div>
+          <div class="t-size">${formatArea(t.area)} ${t.assignedTo ? `• Given to ${t.assignedTo}` : ''}</div>
+        </div>
+        ${STATE.isKing && !t.assignedTo ? `<button class="assign-btn" onclick="event.stopPropagation();openAssignFor('${t.id}')">Assign</button>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // Leaderboard
+  fakeLeaderboard[0].area = STATE.totalArea;
+  fakeLeaderboard[0].name = STATE.playerName;
+  const sorted = [...fakeLeaderboard].sort((a,b) => b.area - a.area);
+  document.getElementById('leaderboard').innerHTML = sorted.map((p, i) => `
+    <div class="lb-row">
+      <div class="lb-rank">${i+1}</div>
+      <div class="lb-dot" style="background:${p.color}"></div>
+      <div class="lb-name">${p.name}</div>
+      <div class="lb-area">${formatArea(p.area)}</div>
+    </div>
+  `).join('');
+}
+
+function updateKingdomUI() {
+  document.getElementById('kingdomName').textContent = STATE.kingdomName || 'Your Kingdom';
+  document.getElementById('kingdomSize').textContent = `${STATE.territories.length} territories`;
+  document.getElementById('hdr-kingdom').textContent = STATE.kingdomName || 'Yours';
+}
+
+function updateStatusBar() {
+  if (STATE.position) {
+    if (!STATE.tracing) setStatusDot('green', 'Exploring');
+  }
+}
+
+function updateHdrSpeed() {
+  const s = Math.round(STATE.speed * 10) / 10;
+  document.getElementById('hdr-speed').textContent = `${s} km/h`;
+  document.getElementById('speedInfo').textContent = s < 1 ? 'Standing still' : s < 10 ? '🚶 Walking' : s < 30 ? '🚲 Cycling' : '🚗 Driving';
+}
+
+// ═══════════════════════════════════════
+//  ASSIGN TERRITORY
+// ═══════════════════════════════════════
+let assignTargetId = null;
+
+function openAssignModal() {
+  const sel = document.getElementById('assignTerritory');
+  sel.innerHTML = STATE.territories.filter(t => !t.assignedTo).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('assignModal').classList.add('open');
+}
+
+function openAssignFor(id) {
+  assignTargetId = id;
+  const t = STATE.territories.find(t => t.id === id);
+  const sel = document.getElementById('assignTerritory');
+  sel.innerHTML = `<option value="${id}">${t.name}</option>`;
+  document.getElementById('assignModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('assignModal').classList.remove('open');
+  assignTargetId = null;
+}
+
+function confirmAssign() {
+  const tid = assignTargetId || document.getElementById('assignTerritory').value;
+  const player = document.getElementById('assignPlayer').value.trim();
+  if (!player) { showToast('warning','No Player','Enter a player name.'); return; }
+  const t = STATE.territories.find(t => t.id === tid);
+  if (!t) return;
+
+  t.assignedTo = player;
+  // Change polygon color
+  t.layer.setStyle({ fillColor: '#6c5ce7', color: '#6c5ce7' });
+  t.layer.bindTooltip(`<b>${t.name}</b><br>Assigned to ${player}`, { permanent: false, direction: 'center' });
+
+  showToast('success','Territory Assigned',`${t.name} has been granted to ${player}.`);
+  closeModal();
+  updateUI();
+}
+
+// ═══════════════════════════════════════
+//  MAP HELPERS
+// ═══════════════════════════════════════
+function centerMap() {
+  if (STATE.position) map.setView([STATE.position.lat, STATE.position.lng], 16);
+}
+
+function flyToTerritory(id) {
+  const t = STATE.territories.find(t => t.id === id);
+  if (!t) return;
+  const b = L.polygon(t.latlngs).getBounds();
+  map.fitBounds(b, { padding: [40, 40] });
+}
+
+// ═══════════════════════════════════════
+//  STATUS DOT
+// ═══════════════════════════════════════
+function setStatusDot(color, text) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot';
+  dot.classList.add(`dot-${color}`);
+  document.getElementById('statusText').textContent = text;
+}
+
+// ═══════════════════════════════════════
+//  TOAST NOTIFICATIONS
+// ═══════════════════════════════════════
+function showToast(type, title, msg) {
+  const container = document.getElementById('toastContainer');
+  const icons = { success: '✅', warning: '⚠️', gold: '👑' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type === 'gold' ? 'gold' : type === 'warning' ? 'warning' : 'success'}`;
+  toast.innerHTML = `
+    <div class="toast-icon">${icons[type] || '📢'}</div>
+    <div class="toast-msg"><div class="toast-title">${title}</div>${msg}</div>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4200);
+}
+
+// ═══════════════════════════════════════
+//  MATH UTILITIES
+// ═══════════════════════════════════════
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function polygonArea(points) {
+  // Shoelace formula in meters (approximate)
+  let area = 0;
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const lat1 = points[i][0] * Math.PI / 180;
+    const lat2 = points[j][0] * Math.PI / 180;
+    const lng1 = points[i][1] * Math.PI / 180;
+    const lng2 = points[j][1] * Math.PI / 180;
+    area += (lng2 - lng1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+  }
+  return Math.abs(area * 6378137 * 6378137 / 2);
+}
+
+function formatArea(m2) {
+  if (m2 >= 1000000) return `${(m2/1000000).toFixed(2)} km²`;
+  if (m2 >= 10000) return `${(m2/10000).toFixed(2)} ha`;
+  return `${Math.round(m2)} m²`;
+}
+
+function generateTerritoryName() {
+  const adjectives = ['Golden','Iron','Shadow','Crimson','Azure','Silver','Dark','Mystic','Ancient','Storm','Frost','Ember'];
+  const nouns = ['Vale','Reach','Hold','Crossing','Heights','Hollow','Ridge','Fields','Basin','Flats','Lands','March'];
+  return adjectives[Math.floor(Math.random()*adjectives.length)] + ' ' + nouns[Math.floor(Math.random()*nouns.length)];
+}
+
+// ═══════════════════════════════════════
+//  DEMO: Fake territories for other players
+// ═══════════════════════════════════════
+function addFakeTerritories() {
+  const center = map.getCenter();
+  const fakeZones = [
+    { color: '#d63031', offset: [0.003, 0.004], size: 0.002 },
+    { color: '#6c5ce7', offset: [-0.002, -0.003], size: 0.0015 },
+    { color: '#0984e3', offset: [0.004, -0.002], size: 0.001 },
+  ];
+  fakeZones.forEach(z => {
+    const c = [center.lat + z.offset[0], center.lng + z.offset[1]];
+    const s = z.size;
+    const pts = [
+      [c[0]-s, c[1]-s], [c[0]+s, c[1]-s],
+      [c[0]+s, c[1]+s], [c[0]-s, c[1]+s],
+    ];
+    L.polygon(pts, {
+      fillColor: z.color,
+      fillOpacity: 0.25,
+      color: z.color,
+      weight: 2,
+      opacity: 0.6,
+    }).addTo(territoryLayer);
+  });
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+updateUI();
+map.whenReady(() => {
+  setTimeout(addFakeTerritories, 500);
+});
+</script>
+</body>
+</html>
